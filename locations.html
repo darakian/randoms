@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+  <title>Geo interpolator</title>
+</head>
+
+<style>
+body {
+  font-family: "Helvetica Neue", Helvetica, sans-serif;
+  font-size: 14px;
+  color: #333;
+}
+</style>
+
+<body>
+  <div id="content">
+    <canvas width="1024" height="768"></canvas>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.2.2/d3.min.js"></script>
+
+  <script>
+var geojson = {}
+
+var context = d3.select('#content canvas')
+  .node()
+  .getContext('2d');
+
+//Frame earth
+var projection = d3.geoOrthographic()
+  .scale(300)
+  .rotate([100, -35]);
+
+var geoGenerator = d3.geoPath()
+  .projection(projection)
+  .pointRadius(4)
+  .context(context);
+
+// Places
+var sanJoseLonLat = [-121.8949555, 37.3393857]
+var honoluluLonLat = [-157.8583333, 21.3069444]
+var medfordLonLat = [-122.8744444, 42.3266667]
+var weedLonLat = [-122.3861269, 41.4226498]
+var sanFranLonLat = [-122.431297, 37.773972]
+var prudenvilleLonLat = [-84.6519671, 44.2983513]
+var nijmegenLonLat = [5.8372264, 51.8125626]
+
+//Paths
+var sanJoseWeedInter = d3.geoInterpolate(sanJoseLonLat, weedLonLat);
+var weedSanJoseInter = d3.geoInterpolate(weedLonLat, sanJoseLonLat);
+var sanJoseHonoInter = d3.geoInterpolate(sanJoseLonLat, honoluluLonLat);
+var honoSanJoseInter = d3.geoInterpolate(honoluluLonLat, sanJoseLonLat);
+var sanJosePrudenInter = d3.geoInterpolate(sanJoseLonLat, prudenvilleLonLat);
+var prudenMedfordInter = d3.geoInterpolate(prudenvilleLonLat, medfordLonLat);
+var medfordHonoInter = d3.geoInterpolate(medfordLonLat, honoluluLonLat);
+var HonoNijmegenInter = d3.geoInterpolate(honoluluLonLat, nijmegenLonLat);
+var nijmegenSanFranInter = d3.geoInterpolate(nijmegenLonLat, sanFranLonLat);
+
+// Start at -5 so I have time to set up the recording.
+// Animation starts at u = 0
+var u = -5;
+function update() {
+  context.clearRect(0, 0, 1024, 768);
+
+  context.lineWidth = 0.5;
+  context.strokeStyle = '#333';
+
+  context.beginPath();
+  geoGenerator({type: 'FeatureCollection', features: geojson.features})
+  context.stroke();
+
+  // Graticule
+  var graticule = d3.geoGraticule();
+  context.beginPath();
+  context.strokeStyle = '#ccc';
+  geoGenerator(graticule());
+  context.stroke();
+
+  // Line sets
+  var firstLineFeatures = [{geometry: {type: 'LineString', coordinates: [sanJoseLonLat, weedLonLat]}}];
+  var secondLineFeatures = firstLineFeatures.concat({geometry: {type: 'LineString', coordinates: [sanJoseLonLat, honoluluLonLat]}});
+  var thirdLineFeatures = secondLineFeatures.concat({geometry: {type: 'LineString', coordinates: [sanJoseLonLat, prudenvilleLonLat]}});
+  var fourthLineFeatures = thirdLineFeatures.concat({geometry: {type: 'LineString', coordinates: [medfordLonLat, prudenvilleLonLat]}});
+  var fifthLineFeatures = fourthLineFeatures.concat({geometry: {type: 'LineString', coordinates: [medfordLonLat, honoluluLonLat]}});
+  var sixthLineFeatures = fifthLineFeatures.concat({geometry: {type: 'LineString', coordinates: [nijmegenLonLat, honoluluLonLat]}});
+  var seventhLineFeatures = sixthLineFeatures.concat({geometry: {type: 'LineString', coordinates: [nijmegenLonLat, sanFranLonLat]}});
+
+
+  // Plot stages
+  switch (Math.floor(u)){
+    case 0:
+      context.beginPath();
+      context.strokeStyle = 'red';
+      geoGenerator({type: 'FeatureCollection', features: firstLineFeatures});
+      context.stroke();
+      context.beginPath();
+      context.fillStyle = 'red';
+      var pointpath = {type: 'Point', coordinates: sanJoseWeedInter(u)};
+      geoGenerator({type: "Feature", geometry: pointpath});
+      context.fill();
+      break;
+    case 1:
+      context.beginPath();
+      context.strokeStyle = 'red';
+      geoGenerator({type: 'FeatureCollection', features: firstLineFeatures});
+      context.stroke();
+      context.beginPath();
+      context.fillStyle = 'red';
+      var pointpath = {type: 'Point', coordinates: weedSanJoseInter(u-1)};
+      geoGenerator({type: "Feature", geometry: pointpath});
+      context.fill();
+      break;
+    case 2:
+      context.beginPath();
+      context.strokeStyle = 'red';
+      geoGenerator({type: 'FeatureCollection', features: secondLineFeatures});
+      context.stroke();
+      context.beginPath();
+      context.fillStyle = 'red';
+      var pointpath = {type: 'Point', coordinates: sanJoseHonoInter(u-2)};
+      geoGenerator({type: 'FeatureCollection', features: secondLineFeatures});
+      geoGenerator({type: "Feature", geometry: pointpath});
+      context.fill();
+      break;
+    case 3:
+      context.beginPath();
+      context.strokeStyle = 'red';
+      geoGenerator({type: 'FeatureCollection', features: secondLineFeatures});
+      context.stroke();
+      context.beginPath();
+      context.fillStyle = 'red';
+      var pointpath = {type: 'Point', coordinates: honoSanJoseInter(u-3)};
+      geoGenerator({type: "Feature", geometry: pointpath});
+      context.fill();
+      break;
+    case 4:
+      context.beginPath();
+      context.strokeStyle = 'red';
+      geoGenerator({type: 'FeatureCollection', features: thirdLineFeatures});
+      context.stroke();
+      context.beginPath();
+      context.fillStyle = 'red';
+      var pointpath = {type: 'Point', coordinates: sanJosePrudenInter(u-4)};
+      geoGenerator({type: "Feature", geometry: pointpath});
+      context.fill();
+      break;
+    case 5:
+      context.beginPath();
+      context.strokeStyle = 'red';
+      geoGenerator({type: 'FeatureCollection', features: fourthLineFeatures});
+      context.stroke();
+      context.beginPath();
+      context.fillStyle = 'red';
+      var pointpath = {type: 'Point', coordinates: prudenMedfordInter(u-5)};
+      geoGenerator({type: "Feature", geometry: pointpath});
+      context.fill();
+      break;
+    case 6:
+      context.beginPath();
+      context.strokeStyle = 'red';
+      geoGenerator({type: 'FeatureCollection', features: fifthLineFeatures});
+      context.stroke();
+      context.beginPath();
+      context.fillStyle = 'red';
+      var pointpath = {type: 'Point', coordinates: medfordHonoInter(u-6)};
+      geoGenerator({type: "Feature", geometry: pointpath});
+      context.fill();
+      break;
+    case 7:
+      context.beginPath();
+      context.strokeStyle = 'red';
+      geoGenerator({type: 'FeatureCollection', features: sixthLineFeatures});
+      context.stroke();
+      context.beginPath();
+      context.fillStyle = 'red';
+      var pointpath = {type: 'Point', coordinates: HonoNijmegenInter(u-7)};
+      geoGenerator({type: "Feature", geometry: pointpath});
+      context.fill();
+      break;
+    case 8:
+      context.beginPath();
+      context.strokeStyle = 'red';
+      geoGenerator({type: 'FeatureCollection', features: seventhLineFeatures});
+      context.stroke();
+      context.beginPath();
+      context.fillStyle = 'red';
+      var pointpath = {type: 'Point', coordinates: nijmegenSanFranInter(u-8)};
+      geoGenerator({type: "Feature", geometry: pointpath});
+      context.fill();
+      break;
+    case 9:
+      context.beginPath();
+      context.strokeStyle = 'red';
+      geoGenerator({type: 'FeatureCollection', features: seventhLineFeatures});
+      context.stroke();
+      u = 9;
+      break;
+    default:
+      break;
+  }
+
+  // Speed control
+  u += 0.02
+}
+
+
+// REQUEST DATA
+d3.json('https://gist.githubusercontent.com/d3indepth/f28e1c3a99ea6d84986f35ac8646fac7/raw/c58cede8dab4673c91a3db702d50f7447b373d98/ne_110m_land.json', function(err, json) {
+  geojson = json;
+  window.setInterval(update, 50);
+  // update(json);
+})
+
+  </script>
+</body>
+</html>
